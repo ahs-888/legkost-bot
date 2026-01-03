@@ -114,17 +114,6 @@ def kb_about_end():
     kb.adjust(1)
     return kb.as_markup()
 
-
-
-def kb_menu():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="✍️ Выписать и позволить", callback_data="w1")
-    kb.button(text="😮‍💨 Вдох и позволение", callback_data="b1")
-    kb.button(text="🏠 В начало", callback_data="home")
-    kb.adjust(1)
-    return kb.as_markup()
-
-
 def kb_next(next_cb: str, home: bool = True):
     kb = InlineKeyboardBuilder()
     kb.button(text="Дальше", callback_data=next_cb)
