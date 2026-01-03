@@ -1,35 +1,21 @@
 import os
 import asyncio
+
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
-BOT_NAME = "Лёгкость..."
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN пустой. Проверь .env / Variables (Railway).")
 
-def kb_start():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="🙋‍♂️ Обо мне", callback_data="about")
-    kb.button(text="Получить доступ", callback_data="get_access")
-    kb.adjust(1)
-    return kb.as_markup()
+BOT_NAME = "Лёгкость…"
 
-
-def kb_menu():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="📝 Выписать и позволить", callback_data="w1")
-    kb.button(text="😮‍💨 Вдох и позволение", callback_data="b1")
-    kb.adjust(1)
-    return kb.as_markup()
-
-def kb_next(tag):
-    kb = InlineKeyboardBuilder()
-    kb.button(text="Дальше", callback_data=tag)
-    return kb.as_markup()
+# ---------------- ТЕКСТЫ ----------------
 
 START_TEXT = (
     "Если вы устали: 😔\n\n"
@@ -52,48 +38,98 @@ START_TEXT = (
     "Проверено."
 )
 
-
-
 HOW_TEXT = (
     "Это не медицина и не психотерапия.\n\n"
     "Это простой инструмент саморегуляции:\n"
-    "не подавлять состояние и не застревать в нём."
+    "не подавлять состояние и не застревать в нём.\n\n"
+    "Два упражнения:\n"
+    "✍️ выписать состояние\n"
+    "😮‍💨 дыхание + разрешение\n\n"
+    "Нажми «Получить доступ» и начни."
 )
+
 ABOUT_TEXT = (
-    "Обо мне 👋\n\n"
-    "С 2009 года, а это уже 17 лет, я занимаюсь эзотерикой ✨\n\n"
+    "👋 *Обо мне*\n\n"
+    "С 2009 года, а это уже 17 лет, я занимаюсь практиками.\n\n"
     "Что меня сподвигло на это?!\n"
     "Хороший вопрос.\n\n"
-    "В основном — поиск того, что такое жизнь и кто есть я "
-    "за пределами этого тела, на Земле 🤷‍♂️\n\n"
+    "В основном — поиск того, что такое человек\n"
+    "за пределами этого тела, на Земле.\n\n"
     "Пришёл ли я к этому?\n"
     "Да, более чем.\n\n"
-    "За это время я прошёл огромное количество практик и техник:\n"
-    "медитации, космоэнергетику, таро, магию и многое другое —\n"
-    "всё, где можно было хоть как-то приблизиться к этим ответам.\n\n"
-    "Конечно, были и абсолютно нерабочие вещи,\n"
-    "ведущие не в ту сторону и являющиеся пустой тратой времени.\n\n"
-    "Но были и практики, которые оказались очень эффективными\n"
+    "За это время я прошёл огромное количество практик,\n"
+    "медитации, космоэнергетику, таро, и др.\n\n"
+    "Конечно, были и абсолютно нерабочие,\n"
+    "ведущие не в ту сторону.\n\n"
+    "Но были и практики, которые оказались полезны\n"
     "и реально помогли в жизни 🌱\n\n"
     "И именно то, что действительно работает,\n"
-    "я и предлагаю вам —\n"
+    "я и предлагаю вам —\n\n"
     "чтобы на 100% сделать жизнь легче\n"
-    "и вернуть лёгкость 💫"
+    "и вернуть лёгкость ✨"
+)
+
+ACCESS_TEXT = (
+    "🔒 Доступ будет открыт совсем скоро.\n\n"
+    "Спасибо за доверие 🤍"
 )
 
 WRITE = [
-    "📝 Остановись на пару минут.\nВозьми заметки или лист.",
-    "Выпиши всё, что сейчас внутри.\nНе фильтруй. Просто пиши.",
-    "После каждого пункта дописывай:\n«Я позволяю этому быть».",
-    "Завершение:\nДай состоянию выйти. Этого достаточно."
+    "✍️ Остановись на пару минут.\n\n"
+    "Выпиши всё, что сейчас внутри.\n"
+    "Не редактируй, просто выгружай.",
+    "После каждого пункта дописывай:\n"
+    "«Я позволяю этому быть»",
+    "Дай состоянию выйти.\n"
+    "Если хочется — зевни, потянись, выдохни.",
+    "Готово ✅\n\n"
+    "Если хочешь — повтори ещё раз с тем, что осталось."
 ]
 
 BREATH = [
-    "😮‍💨 Остановись и почувствуй опору.",
-    "Сделай глубокий вдох и медленный выдох.\nБез мыслей.",
-    "В конце выдоха скажи:\n«Я позволяю».",
-    "Повтори 1–3 раза, если нужно."
+    "😮‍💨 Остановись и почувствуй опору.\n\n"
+    "Сделай глубокий вдох и медленный выдох.",
+    "В конце выдоха скажи:\n"
+    "«Я позволяю этому быть»",
+    "Повтори 1–3 раза, если нужно.",
+    "Готово ✅\n\n"
+    "Можно возвращаться к этому в любой момент."
 ]
+
+# !!! Поменяй на реальное имя файла в репозитории рядом с main.py
+ABOUT_PHOTO_PATH = "IMG_5147.jpeg"
+
+
+# ---------------- КНОПКИ ----------------
+
+def kb_start():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="👋 Обо мне", callback_data="about")
+    kb.button(text="Как это работает", callback_data="how")
+    kb.button(text="Получить доступ", callback_data="get_access")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def kb_menu():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✍️ Выписать и позволить", callback_data="w1")
+    kb.button(text="😮‍💨 Вдох и позволение", callback_data="b1")
+    kb.button(text="🏠 В начало", callback_data="home")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def kb_next(next_cb: str, home: bool = True):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Дальше", callback_data=next_cb)
+    if home:
+        kb.button(text="🏠 В начало", callback_data="home")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+# ---------------- БОТ ----------------
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
@@ -102,57 +138,88 @@ async def main():
     @dp.message(CommandStart())
     async def start(m: Message):
         await m.answer(
-            f"**{BOT_NAME}**\n\n{START_TEXT}",
+            f"*{BOT_NAME}*\n\n{START_TEXT}",
             parse_mode="Markdown",
             reply_markup=kb_start()
         )
 
+    @dp.callback_query(F.data == "home")
+    async def home(c: CallbackQuery):
+        await c.message.answer(
+            f"*{BOT_NAME}*\n\n{START_TEXT}",
+            parse_mode="Markdown",
+            reply_markup=kb_start()
+        )
+        await c.answer()
+
     @dp.callback_query(F.data == "how")
     async def how(c: CallbackQuery):
         await c.message.answer(HOW_TEXT)
+        await c.answer()
 
     @dp.callback_query(F.data == "get_access")
     async def access(c: CallbackQuery):
-        await c.message.answer("Доступ открыт ✅", reply_markup=kb_menu())
-@dp.callback_query(F.data == "about")
-async def about(c: CallbackQuery):
-    await c.message.answer_photo(
-        photo=FSInputFile("IMG_5147.jpeg"),
-        caption=ABOUT_TEXT
-    )
+        await c.message.answer(ACCESS_TEXT, reply_markup=kb_menu())
+        await c.answer()
 
+    @dp.callback_query(F.data == "about")
+    async def about(c: CallbackQuery):
+        # Пытаемся отправить фото, если файла нет — отправляем просто текст
+        try:
+            photo = FSInputFile(ABOUT_PHOTO_PATH)
+            await c.message.answer_photo(
+                photo=photo,
+                caption=ABOUT_TEXT,
+                parse_mode="Markdown"
+            )
+        except Exception:
+            await c.message.answer(ABOUT_TEXT, parse_mode="Markdown")
+        await c.answer()
+
+    # ---- WRITE steps ----
     @dp.callback_query(F.data == "w1")
     async def w1(c: CallbackQuery):
         await c.message.answer(WRITE[0], reply_markup=kb_next("w2"))
+        await c.answer()
 
     @dp.callback_query(F.data == "w2")
     async def w2(c: CallbackQuery):
         await c.message.answer(WRITE[1], reply_markup=kb_next("w3"))
+        await c.answer()
 
     @dp.callback_query(F.data == "w3")
     async def w3(c: CallbackQuery):
         await c.message.answer(WRITE[2], reply_markup=kb_next("w4"))
+        await c.answer()
 
     @dp.callback_query(F.data == "w4")
     async def w4(c: CallbackQuery):
         await c.message.answer(WRITE[3], reply_markup=kb_menu())
+        await c.answer()
 
+    # ---- BREATH steps ----
     @dp.callback_query(F.data == "b1")
     async def b1(c: CallbackQuery):
         await c.message.answer(BREATH[0], reply_markup=kb_next("b2"))
+        await c.answer()
 
     @dp.callback_query(F.data == "b2")
     async def b2(c: CallbackQuery):
         await c.message.answer(BREATH[1], reply_markup=kb_next("b3"))
+        await c.answer()
 
     @dp.callback_query(F.data == "b3")
     async def b3(c: CallbackQuery):
         await c.message.answer(BREATH[2], reply_markup=kb_next("b4"))
+        await c.answer()
 
     @dp.callback_query(F.data == "b4")
     async def b4(c: CallbackQuery):
         await c.message.answer(BREATH[3], reply_markup=kb_menu())
+        await c.answer()
 
     await dp.start_polling(bot)
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())
