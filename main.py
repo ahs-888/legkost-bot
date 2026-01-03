@@ -2,7 +2,7 @@ import os
 import asyncio
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ if not BOT_TOKEN:
 
 BOT_NAME = "Лёгкость..."
 
-# ===================== ТЕКСТЫ =====================
+# ===================== ТЕКСТЫ (НЕ ТРОГАТЬ) =====================
 
 START_TEXT = (
     "Если вы устали: 😔\n\n"
@@ -68,37 +68,27 @@ ABOUT_TEXT = (
     "и вернуть лёгкость 😊"
 )
 
-
 ACCESS_TEXT = (
     "🔒 Доступ будет открыт совсем скоро.\n"
     "Спасибо за доверие 🤍"
 )
 
-# Два упражнения (можешь править тексты как хочешь)
-WRITE = [
-    "✍️ Остановись на пару минут.\n\n"
-    "Выпиши всё, что сейчас внутри.\n"
-    "Не редактируй, просто выгружай.\n\n"
-    "После каждого пункта дописывай:\n"
-    "«Я позволяю этому быть»\n\n"
-    "Дай состоянию выйти.\n"
-    "Если хочется — зевни, потянись, выдохни.\n\n"
-    "Готово ✅\n\n"
-    "Если хочешь — повтори ещё раз с тем, что осталось."
-]
+# ===================== ФАЙЛЫ (ФОТО) =====================
 
-BREATH = [
-    "😮‍💨 Остановись и почувствуй опору.\n\n"
-    "Сделай глубокий вдох и медленный выдох.\n\n"
-    "В конце выдоха скажи:\n"
-    "«Я позволяю этому быть»\n\n"
-    "Повтори 1–3 раза, если нужно.\n\n"
-    "Готово ✅\n\n"
-    "Можно возвращаться к этому в любой момент."
-]
-
-# !!! Поменяй на реальное имя файла, которое лежит в репозитории рядом с main.py
+# Фото "Обо мне"
 ABOUT_PHOTO_PATH = "IMG_5147.jpeg"
+
+# Фото упражнений (ты их уже загрузил в репозиторий рядом с main.py)
+EXERCISE_PHOTOS = [
+    "IMG_5017.png",
+    "IMG_5018.png",
+    "IMG_5019.png",
+]
+
+# Режим оплаты:
+# 0 = сразу показываем упражнения (удобно для теста)
+# 1 = показываем заглушку ACCESS_TEXT (позже подключишь оплату)
+PAYWALL_ENABLED = os.getenv("PAYWALL_ENABLED", "0") == "1"
 
 
 # ===================== КНОПКИ =====================
@@ -118,20 +108,34 @@ def kb_about_end():
     return kb.as_markup()
 
 
-def kb_menu():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="✍️ Выписать и позволить", callback_data="write")
-    kb.button(text="😮‍💨 Вдох и позволение", callback_data="breath")
-    kb.button(text="🏠 В начало", callback_data="home")
-    kb.adjust(1)
-    return kb.as_markup()
-
-
 def kb_back_home():
     kb = InlineKeyboardBuilder()
     kb.button(text="🏠 В начало", callback_data="home")
     kb.adjust(1)
     return kb.as_markup()
+
+
+# ===================== ХЕЛПЕРЫ =====================
+
+async def send_exercises(c: CallbackQuery):
+    """
+    Отправляем упражнения как фото (без текста, без лишних кнопок).
+    После — даём кнопку "В начало".
+    """
+    # Проверка наличия файлов (чтобы сразу понять, если имя не совпало)
+    missing = [p for p in EXERCISE_PHOTOS if not os.path.exists(p)]
+    if missing:
+        await c.message.answer(
+            "❌ Не нашёл файлы упражнений в проекте:\n"
+            + "\n".join(missing)
+            + "\n\nПроверь названия файлов в репозитории и в коде (EXERCISE_PHOTOS).",
+            reply_markup=kb_back_home()
+        )
+        return
+
+    media = [InputMediaPhoto(media=FSInputFile(path)) for path in EXERCISE_PHOTOS]
+    await c.message.answer_media_group(media=media)
+    await c.message.answer("✅ Упражнения открыты.", reply_markup=kb_back_home())
 
 
 # ===================== БОТ =====================
@@ -159,27 +163,41 @@ async def main():
         )
         await c.answer()
 
-    # Получить доступ (важно: callback_data == "get_access" везде одинаковый)
+    # Получить доступ
     @dp.callback_query(F.data == "get_access")
     async def access(c: CallbackQuery):
-        await c.message.answer(
-            ACCESS_TEXT,
-            parse_mode="Markdown",
-            reply_markup=kb_back_home()
-        )
+        # Позже здесь будет проверка оплаты.
+        # Пока: если PAYWALL_ENABLED=1 -> заглушка, иначе -> сразу фото-упражнения.
+        if PAYWALL_ENABLED:
+            await c.message.answer(
+                ACCESS_TEXT,
+                parse_mode="Markdown",
+                reply_markup=kb_back_home()
+            )
+        else:
+            await send_exercises(c)
+
         await c.answer()
 
-    # Обо мне (в конце — дублирующая кнопка "Получить доступ")
+    # Обо мне (в конце — кнопка "Получить доступ")
     @dp.callback_query(F.data == "about")
     async def about(c: CallbackQuery):
         try:
-            photo = FSInputFile(ABOUT_PHOTO_PATH)
-            await c.message.answer_photo(
-                photo=photo,
-                caption=ABOUT_TEXT,
-                parse_mode="Markdown",
-                reply_markup=kb_about_end()
-            )
+            if os.path.exists(ABOUT_PHOTO_PATH):
+                photo = FSInputFile(ABOUT_PHOTO_PATH)
+                await c.message.answer_photo(
+                    photo=photo,
+                    caption=ABOUT_TEXT,
+                    parse_mode="Markdown",
+                    reply_markup=kb_about_end()
+                )
+            else:
+                # Если фото не нашли — просто текст
+                await c.message.answer(
+                    ABOUT_TEXT,
+                    parse_mode="Markdown",
+                    reply_markup=kb_about_end()
+                )
         except Exception:
             await c.message.answer(
                 ABOUT_TEXT,
@@ -188,23 +206,6 @@ async def main():
             )
 
         await c.answer()
-
-    # Упражнение 1
-    @dp.callback_query(F.data == "write")
-    async def write(c: CallbackQuery):
-        await c.message.answer("\n\n".join(WRITE), reply_markup=kb_menu())
-        await c.answer()
-
-    # Упражнение 2
-    @dp.callback_query(F.data == "breath")
-    async def breath(c: CallbackQuery):
-        await c.message.answer("\n\n".join(BREATH), reply_markup=kb_menu())
-        await c.answer()
-
-    # (необязательно) Команда /menu если захочешь
-    @dp.message(F.text == "/menu")
-    async def menu_cmd(m: Message):
-        await m.answer("Выбери упражнение:", reply_markup=kb_menu())
 
     await dp.start_polling(bot)
 
