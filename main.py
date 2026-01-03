@@ -13,7 +13,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN пуст. Добавь BOT_TOKEN в переменные Railway / .env")
 
-BOT_NAME = "Лёгкость"
+BOT_NAME = "Лёгкость..."
 
 # ===================== ТЕКСТЫ =====================
 
