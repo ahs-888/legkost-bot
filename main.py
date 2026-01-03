@@ -139,11 +139,13 @@ async def main():
         await c.answer()
 
     # Экран перед оплатой: только кнопка "Попробовать за 149 ₽"
-    @dp.callback_query(F.data == "try_practice")
-    async def try_practice(c: CallbackQuery):
-        # Минимально, без лишних фраз:
-        await c.message.answer("⬇️", reply_markup=kb_pay_149())
-        await c.answer()
+   @dp.callback_query(F.data == "try_practice")
+async def try_practice(c: CallbackQuery):
+    await c.message.answer(
+        reply_markup=kb_pay_149()
+    )
+    await c.answer()
+
 
     # "Оплата" (пока имитация): открываем упражнения и шлём фото
     @dp.callback_query(F.data == "pay_149")
