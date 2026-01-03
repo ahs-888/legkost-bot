@@ -114,6 +114,12 @@ async def main():
     @dp.callback_query(F.data == "get_access")
     async def access(c: CallbackQuery):
         await c.message.answer("Доступ открыт ✅", reply_markup=kb_menu())
+@dp.callback_query(F.data == "about")
+async def about(c: CallbackQuery):
+    await c.message.answer_photo(
+        photo=FSInputFile("IMG_5147.jpeg"),
+        caption=ABOUT_TEXT
+    )
 
     @dp.callback_query(F.data == "w1")
     async def w1(c: CallbackQuery):
