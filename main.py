@@ -13,10 +13,11 @@ BOT_NAME = "Лёгкость..."
 
 def kb_start():
     kb = InlineKeyboardBuilder()
+    kb.button(text="🙋‍♂️ Обо мне", callback_data="about")
     kb.button(text="Получить доступ", callback_data="get_access")
-    kb.button(text="Как это работает", callback_data="how")
     kb.adjust(1)
     return kb.as_markup()
+
 
 def kb_menu():
     kb = InlineKeyboardBuilder()
