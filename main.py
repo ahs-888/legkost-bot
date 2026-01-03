@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
-BOT_NAME = "Лёгкость"
+BOT_NAME = "Лёгкость..."
 
 def kb_start():
     kb = InlineKeyboardBuilder()
