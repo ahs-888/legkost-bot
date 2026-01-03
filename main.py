@@ -108,6 +108,11 @@ def kb_start():
     kb.button(text="Получить доступ", callback_data="access")
     kb.adjust(1)
     return kb.as_markup()
+def kb_about_end():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔓 Получить доступ", callback_data="access")
+    kb.adjust(1)
+    return kb.as_markup()
 
 
 
