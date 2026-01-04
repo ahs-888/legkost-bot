@@ -105,14 +105,14 @@ EXERCISE_PHOTOS = [
 def kb_start():
     kb = InlineKeyboardBuilder()
     kb.button(text="👋 Обо мне", callback_data="about")
-    kb.button(text="Получить доступ", callback_data="get_access")
+    kb.button(text="Попробовать практику🌿", callback_data="get_access")
     kb.adjust(1)
     return kb.as_markup()
 
 
 def kb_about_end():
     kb = InlineKeyboardBuilder()
-    kb.button(text="Получить доступ", callback_data="get_access")
+    kb.button(text="Попробовать практику🌿", callback_data="get_access")
     kb.button(text="🏠 В начало", callback_data="home")
     kb.adjust(1)
     return kb.as_markup()
@@ -183,7 +183,7 @@ async def main():
     @dp.callback_query(F.data == "pay_149")
     async def pay_149(c: CallbackQuery):
         # 1) Сообщение как на скрине
-        await c.message.answer("✅ Упражнения открыты.")
+        await c.message.answer("✅ Упражнения практики открыты.")
         # 2) Фото альбомом
         await send_exercises_album(c.message)
         await c.answer()
