@@ -86,8 +86,6 @@ ABOUT_TEXT = (
 )
 
 
-
-
 # ===================== ФАЙЛЫ (ФОТО) =====================
 
 ABOUT_PHOTO_PATH = "IMG_5147.jpeg"
@@ -104,14 +102,14 @@ EXERCISE_PHOTOS = [
 def kb_start():
     kb = InlineKeyboardBuilder()
     kb.button(text="👋 Обо мне", callback_data="about")
-    kb.button(text="Попробовать практику🌿", callback_data="get_access")
+    kb.button(text="Попробовать практику 🌿", callback_data="get_access")
     kb.adjust(1)
     return kb.as_markup()
 
 
 def kb_about_end():
     kb = InlineKeyboardBuilder()
-    kb.button(text="Попробовать практику🌿", callback_data="get_access")
+    kb.button(text="Попробовать практику 🌿", callback_data="get_access")
     kb.button(text="🏠 В начало", callback_data="home")
     kb.adjust(1)
     return kb.as_markup()
@@ -135,24 +133,16 @@ def kb_back_home():
 # ===================== HELPERS =====================
 
 async def send_exercises_album(message: Message):
-    """
-    Отправка альбома фото:
-    - Без Markdown
-    - Сначала альбом, затем отдельное сообщение с кнопкой
-    """
+    """Отправляем только альбом, без дополнительных сообщений."""
     media = []
     for path in EXERCISE_PHOTOS:
         try:
             media.append(InputMediaPhoto(media=FSInputFile(path)))
         except Exception:
-            # если файла нет — пропускаем
             pass
 
     if media:
         await message.answer_media_group(media)
-
-    await message.answer(reply_markup=kb_back_home())
-
 
 
 # ===================== BOT =====================
@@ -172,19 +162,32 @@ async def main():
         await c.message.answer(f"{BOT_NAME}\n\n{START_TEXT}", reply_markup=kb_start())
         await c.answer()
 
-    # Получить доступ → экран перед оплатой
+    # Попробовать практику 🌿 -> показываем оплату (без лишнего сообщения)
     @dp.callback_query(F.data == "get_access")
     async def get_access(c: CallbackQuery):
-        await c.message.answer(PAY_TEXT, reply_markup=kb_pay_149())
+        try:
+            # меняем кнопки у текущего сообщения
+            await c.message.edit_reply_markup(reply_markup=kb_pay_149())
+        except Exception:
+            # запасной вариант (без видимого текста)
+            await c.message.answer("\u200b", reply_markup=kb_pay_149())
         await c.answer()
 
     # "Оплата" (пока имитация): открываем упражнения
     @dp.callback_query(F.data == "pay_149")
     async def pay_149(c: CallbackQuery):
-        # 1) Сообщение как на скрине
-        await c.message.answer("✅ Упражнения практики открыты.")
-        # 2) Фото альбомом
+        # убираем клавиатуру оплаты, чтобы не висела
+        try:
+            await c.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+
+        # Сообщение как нужно + кнопка "🏠 В начало"
+        await c.message.answer("✅ Упражнения открыты.", reply_markup=kb_back_home())
+
+        # Фото альбомом
         await send_exercises_album(c.message)
+
         await c.answer()
 
     # Обо мне (фото + текст)
